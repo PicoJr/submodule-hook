@@ -1,0 +1,12 @@
+[package]
+name = "submodule-hook"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.100"
+clap = { version = "4.5.53", features = ["derive"] }
+dialoguer = "0.12.0"
+env_logger = "0.11.8"
+git2 = { version = "0.20.2" ,  features = ["vendored-libgit2", "vendored-openssl"]}
+log = "0.4.29"
