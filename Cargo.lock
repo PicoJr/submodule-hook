@@ -686,6 +686,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "console",
  "dialoguer",
  "env_logger",
  "git2",
