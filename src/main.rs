@@ -2,21 +2,87 @@ use clap::Parser;
 use console::style;
 use dialoguer::Confirm;
 use dialoguer::theme::ColorfulTheme;
-use git2::{Repository, SubmoduleIgnore};
+use git2::{Config, Repository, SubmoduleIgnore};
 use log::{debug, error, warn};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     /// Make failed checks hard errors
-    #[arg(long, default_value = "false")]
-    strict: bool,
+    #[arg(long)]
+    strict: Option<bool>,
     /// Ask confirmation if commit contains a submodule update
-    #[arg(long, default_value = "false")]
-    careful: bool,
+    #[arg(long)]
+    confirm_staging: Option<bool>,
+    /// Ask confirmation if a submodule is modified and not staged for commit
+    #[arg(long)]
+    confirm_not_staging: Option<bool>,
 }
 
-fn check_submodules(strict: bool, careful: bool) -> anyhow::Result<()> {
+#[derive(Default)]
+struct HookConfig {
+    strict: Option<bool>,
+    confirm_staging: Option<bool>,
+    confirm_not_staging: Option<bool>,
+}
+
+fn get_config() -> HookConfig {
+    let mut config = HookConfig::default();
+    let config_name = "submodulehook".to_string();
+    let strict_option = format!("{config_name}.strict");
+    let confirm_staging_option = format!("{config_name}.staging");
+    let confirm_not_staging_option = format!("{config_name}.notstaging");
+
+    // 0 try reading from global config
+    if let Ok(global_config) = Config::open_default() {
+        if let Ok(value) = global_config.get_string(strict_option.as_str()) {
+            debug!("found global config: {} = {}", strict_option, value);
+            config.strict = Some(value == "true".to_string());
+        }
+        if let Ok(value) = global_config.get_string(confirm_staging_option.as_str()) {
+            debug!(
+                "found global config: {} = {}",
+                confirm_staging_option, value
+            );
+            config.confirm_staging = Some(value == "true".to_string());
+        }
+        if let Ok(value) = global_config.get_string(confirm_not_staging_option.as_str()) {
+            debug!(
+                "found global config: {} = {}",
+                confirm_not_staging_option, value
+            );
+            config.confirm_not_staging = Some(value == "true".to_string());
+        }
+    }
+
+    // 1 try reading from local config
+    if let Ok(repo) = Repository::open(".") {
+        if let Ok(local_config) = repo.config() {
+            if let Ok(value) = local_config.get_string(strict_option.as_str()) {
+                debug!("found local config: {} = {}", strict_option, value);
+                config.strict = Some(value == "true".to_string());
+            }
+            if let Ok(value) = local_config.get_string(confirm_staging_option.as_str()) {
+                debug!("found local config: {} = {}", confirm_staging_option, value);
+                config.confirm_staging = Some(value == "true".to_string());
+            }
+            if let Ok(value) = local_config.get_string(confirm_not_staging_option.as_str()) {
+                debug!(
+                    "found local config: {} = {}",
+                    confirm_not_staging_option, value
+                );
+                config.confirm_not_staging = Some(value == "true");
+            }
+        }
+    }
+    config
+}
+
+fn check_submodules(
+    strict: bool,
+    confirm_staging: bool,
+    confirm_not_staging: bool,
+) -> anyhow::Result<()> {
     if let Ok(repo) = Repository::open(".") {
         if let Ok(submodules) = repo.submodules() {
             let mut modified_not_staged_submodules: Vec<String> = vec![];
@@ -62,14 +128,15 @@ fn check_submodules(strict: bool, careful: bool) -> anyhow::Result<()> {
                 ));
                 for name in &modified_staged_submodules {
                     confirmation_message_lines.push(format!(
-                        "* `{}` (`git restore --staged {name}` to remove submodule from staging)",
+                        "* {} (`git restore --staged {name}` to remove submodule from staging)",
                         style(name).bold().green(),
                     ));
                 }
             }
             confirmation_message_lines.push("Do you wish to continue anyway?".to_string());
-            let ask_confirmation = !modified_not_staged_submodules.is_empty()
-                || (!modified_staged_submodules.is_empty() && careful);
+            let ask_confirmation = (!modified_not_staged_submodules.is_empty()
+                && confirm_not_staging)
+                || (!modified_staged_submodules.is_empty() && confirm_staging);
 
             if ask_confirmation {
                 let confirmation = Confirm::with_theme(&ColorfulTheme::default())
@@ -100,5 +167,24 @@ fn check_submodules(strict: bool, careful: bool) -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let args = Args::parse();
-    check_submodules(args.strict, args.careful)
+    let cli_config = HookConfig {
+        strict: args.strict,
+        confirm_staging: args.confirm_staging,
+        confirm_not_staging: args.confirm_not_staging,
+    };
+    let git_config = get_config();
+    let strict = cli_config.strict.or(git_config.strict).unwrap_or(false);
+    let confirm_staging = cli_config
+        .confirm_staging
+        .or(git_config.confirm_staging)
+        .unwrap_or(true);
+    let confirm_not_staging = cli_config
+        .confirm_not_staging
+        .or(git_config.confirm_not_staging)
+        .unwrap_or(true);
+    if confirm_staging || confirm_not_staging {
+        // only check submodules if configuration enables confirmation
+        check_submodules(strict, confirm_staging, confirm_not_staging)?;
+    }
+    Ok(())
 }
