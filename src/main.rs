@@ -36,22 +36,20 @@ fn get_config() -> HookConfig {
     // 0 try reading from global config
     if let Ok(global_config) = Config::open_default() {
         if let Ok(value) = global_config.get_string(strict_option.as_str()) {
-            debug!("found global config: {} = {}", strict_option, value);
-            config.strict = Some(value == "true".to_string());
+            debug!("found global config: {strict_option} = {value}");
+            config.strict = Some(value == "true");
         }
         if let Ok(value) = global_config.get_string(confirm_staging_option.as_str()) {
             debug!(
-                "found global config: {} = {}",
-                confirm_staging_option, value
+                "found global config: {confirm_staging_option} = {value}"
             );
-            config.confirm_staging = Some(value == "true".to_string());
+            config.confirm_staging = Some(value == "true");
         }
         if let Ok(value) = global_config.get_string(confirm_not_staging_option.as_str()) {
             debug!(
-                "found global config: {} = {}",
-                confirm_not_staging_option, value
+                "found global config: {confirm_not_staging_option} = {value}"
             );
-            config.confirm_not_staging = Some(value == "true".to_string());
+            config.confirm_not_staging = Some(value == "true");
         }
     }
 
@@ -59,17 +57,16 @@ fn get_config() -> HookConfig {
     if let Ok(repo) = Repository::open(".") {
         if let Ok(local_config) = repo.config() {
             if let Ok(value) = local_config.get_string(strict_option.as_str()) {
-                debug!("found local config: {} = {}", strict_option, value);
-                config.strict = Some(value == "true".to_string());
+                debug!("found local config: {strict_option} = {value}");
+                config.strict = Some(value == "true");
             }
             if let Ok(value) = local_config.get_string(confirm_staging_option.as_str()) {
-                debug!("found local config: {} = {}", confirm_staging_option, value);
-                config.confirm_staging = Some(value == "true".to_string());
+                debug!("found local config: {confirm_staging_option} = {value}");
+                config.confirm_staging = Some(value == "true");
             }
             if let Ok(value) = local_config.get_string(confirm_not_staging_option.as_str()) {
                 debug!(
-                    "found local config: {} = {}",
-                    confirm_not_staging_option, value
+                    "found local config: {confirm_not_staging_option} = {value}"
                 );
                 config.confirm_not_staging = Some(value == "true");
             }
