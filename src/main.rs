@@ -5,7 +5,7 @@ use dialoguer::Confirm;
 use dialoguer::theme::ColorfulTheme;
 use git2::{Config, Repository};
 use log::debug;
-use std::path::Path;
+use std::path::PathBuf;
 
 mod check_submodules;
 
@@ -21,6 +21,9 @@ struct Args {
     /// Ask confirmation if a submodule is modified and not staged for commit
     #[arg(long)]
     confirm_not_staging: Option<bool>,
+    /// Repository path
+    #[arg(long, default_value = ".")]
+    repo: PathBuf,
 }
 
 #[derive(Default)]
@@ -138,7 +141,7 @@ fn main() -> anyhow::Result<()> {
         .unwrap_or(true);
     if confirm_staging || confirm_not_staging {
         // only check submodules if configuration enables confirmation
-        let diagnostics = check_submodules::check_submodules(strict, Path::new("."))?;
+        let diagnostics = check_submodules::check_submodules(strict, args.repo.as_path())?;
         if let Some(diagnostics) = diagnostics {
             let prompt_for_confirmation = (!diagnostics.modified_not_staged_submodules.is_empty()
                 && confirm_not_staging)
