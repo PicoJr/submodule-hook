@@ -1,3 +1,5 @@
+[![Crates.io](https://img.shields.io/crates/v/submodule-hook.svg)](https://crates.io/crates/submodule-hook)
+
 # Pre Commit Submodule Hook
 
 This pre-commit hook asks you to confirm when submodules are either:
