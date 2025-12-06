@@ -146,13 +146,13 @@ fn ask_confirmation(
             ));
         }
     }
-    confirmation_message_lines.push("Do you wish to continue anyway?".to_string());
 
+    println!("{}", confirmation_message_lines.join("\n"));
     let confirmation = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(confirmation_message_lines.join("\n"))
+        .with_prompt("Do you wish to continue anyway?".to_string())
         .default(false)
         .show_default(true)
-        .report(false)
+        .report(true)
         .interact()?;
 
     if !confirmation {
