@@ -691,6 +691,7 @@ dependencies = [
  "env_logger",
  "git2",
  "log",
+ "tempfile",
 ]
 
 [[package]]
