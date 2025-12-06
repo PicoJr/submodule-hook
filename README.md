@@ -1,6 +1,8 @@
 # Pre Commit Submodule Hook
 
-This pre-commit hook reminds you of your submodules before you commit.
+This pre-commit hook asks you to confirm when submodules are either:
+* modified and not staged for commit
+* modified and staged for commit
 
 It looks like this (YMMV) if you configure it as your pre-commit hook:
 
@@ -52,6 +54,8 @@ Edit `.git/config` or `~/.gitconfig`
     # if true also ask for confirmation before commit when a submodule is modified and not staged
     notstaging = true
 ```
+
+> if both `staging` and `notstaging` are set to `false` then the hook will be disabled
 
 Or use `git config`:
 

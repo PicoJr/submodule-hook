@@ -2,6 +2,12 @@
 name = "submodule-hook"
 version = "0.1.0"
 edition = "2024"
+description = "submodules check pre commit hook"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+keywords = ["hook", "git", "commit", "submodule"]
+categories = ["command-line-utilities"]
+repository = "https://github.com/PicoJr/submodule-hook"
 
 [dependencies]
 anyhow = "1.0.100"
