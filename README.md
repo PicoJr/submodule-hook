@@ -31,21 +31,43 @@ and then
         statically linked
 ```
 
-## How to configure it as my `pre-commit` hook ?
+## How to install and configure it as my `pre-commit` hook ?
+
+### From source
 
 1. compile it: `cargo build --target=x86_64-unknown-linux-musl --release`
-2. install it `cp target/x86_64-unknown-linux-musl/release/submodule-hook .git/hooks/pre-commit`
+2. install it as your `pre-commit` hook: `cp target/x86_64-unknown-linux-musl/release/submodule-hook .git/hooks/pre-commit`
+
+### From crates.io
+
+1. install it: `cargo install submodule-hook`
+2. install it as your `pre-commit` hook: `cp $(which submodule-hook) .git/hooks/pre-commit`
+
+
+## How to uninstall it ?
+
+Remove the hook using: `rm .git/hooks/pre-commit`
+
+If you installed it from crates.io, you can remove the binary from your `~/.cargo/bin` directory using: `cargo uninstall submodule-hook`
+
+## Can I try it without setting it as my `pre-commit` hook ?
+
+Yes, you can run it manually:
+
+```
+submodule-hook --repo <path-to-your-repo>
+```
 
 ## Configuration
 
 Configuration is evaluated in this order:
 
-1. `~/.gitconfig`
-2. `.git/config`
+1. global `~/.gitconfig`
+2. local `.git/config`
 3. CLI parameters cf `cargo run -- --help`
 4. if no configuration is found it assumes `strict = false`, `staging = true`, `notstaging = true`
 
-Edit `.git/config` or `~/.gitconfig`
+Edit local `.git/config` or global `~/.gitconfig`
 
 ```toml
 [submodulehook]
@@ -66,3 +88,7 @@ git config submodulehook.strict false
 git config submodulehook.staging true
 git config submodulehook.notstaging true
 ```
+
+## CHANGELOG
+
+Please see the [CHANGELOG](CHANGELOG.md) for a release history.
