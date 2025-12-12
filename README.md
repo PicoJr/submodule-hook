@@ -16,47 +16,29 @@ The following submodules are modified and staged for commit:
 Do you wish to continue anyway? (y/n) › no
 ```
 
-## How to build it so that it runs with minimal dependencies (statically)
+## Install and configure it as my `pre-commit` hook
 
-Build using musl
+### From crates.io (recommended)
 
-```
-cargo build --target=x86_64-unknown-linux-musl
-```
-
-and then
-
-```
-❯ ldd target/x86_64-unknown-linux-musl/debug/submodule-hook
-        statically linked
-```
-
-## How to install and configure it as my `pre-commit` hook ?
+1. install it: `cargo install submodule-hook`
+2. install it as your `pre-commit` hook: `cp $(which submodule-hook) .git/hooks/pre-commit`
 
 ### From source
 
 1. compile it: `cargo build --target=x86_64-unknown-linux-musl --release`
 2. install it as your `pre-commit` hook: `cp target/x86_64-unknown-linux-musl/release/submodule-hook .git/hooks/pre-commit`
 
-### From crates.io
-
-1. install it: `cargo install submodule-hook`
-2. install it as your `pre-commit` hook: `cp $(which submodule-hook) .git/hooks/pre-commit`
-
-
-## How to uninstall it ?
-
-Remove the hook using: `rm .git/hooks/pre-commit`
-
-If you installed it from crates.io, you can remove the binary from your `~/.cargo/bin` directory using: `cargo uninstall submodule-hook`
-
-## Can I try it without setting it as my `pre-commit` hook ?
-
-Yes, you can run it manually:
+### Try it without setting it as a `pre-commit` hook
 
 ```
 submodule-hook --repo <path-to-your-repo>
 ```
+
+## Uninstall
+
+Remove the hook using: `rm .git/hooks/pre-commit`
+
+If you installed it from crates.io, you can remove the binary from your `~/.cargo/bin` directory using: `cargo uninstall submodule-hook`
 
 ## Configuration
 
@@ -66,6 +48,8 @@ Configuration is evaluated in this order:
 2. local `.git/config`
 3. CLI parameters cf `cargo run -- --help`
 4. if no configuration is found it assumes `strict = false`, `staging = true`, `notstaging = true`
+
+It means the CLI prioritizes the CLI parameters, then local config, then global config.
 
 Edit local `.git/config` or global `~/.gitconfig`
 
@@ -88,6 +72,20 @@ git config submodulehook.strict false
 git config submodulehook.staging true
 git config submodulehook.notstaging true
 ```
+
+## Debug
+
+debug logs can be enabled using `RUST_LOG=debug`:
+
+```
+RUST_LOG=debug submodule-hook --repo <path-to-your-repo>
+```
+
+## Exit Code
+
+* `0` if the hook ran without errors and the user chose to continue when prompted for confirmation
+* `1` if the user chose not to continue when prompted for confirmation
+* `130` if the user `ctrl-c` the hook
 
 ## CHANGELOG
 
