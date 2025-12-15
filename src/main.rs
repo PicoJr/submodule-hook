@@ -95,7 +95,7 @@ fn main() -> ProgramOutcome {
                         }
                         Err(e) => {
                             // Error occurred during confirmation
-                            eprintln!("Confirmation error: {}", e);
+                            eprintln!("Confirmation error: {e}");
                             ProgramOutcome::Success(ConfirmationOutcome::Cancelled)
                         }
                     }
@@ -107,7 +107,7 @@ fn main() -> ProgramOutcome {
             }
             Err(e) => {
                 // Error occurred during submodule checking
-                eprintln!("Submodule check error: {}", e);
+                eprintln!("Submodule check error: {e}");
                 return ProgramOutcome::CheckError;
             }
         }
