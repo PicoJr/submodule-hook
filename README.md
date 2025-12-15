@@ -85,6 +85,7 @@ RUST_LOG=debug submodule-hook --repo <path-to-your-repo>
 
 * `0` if the hook ran without errors and the user chose to continue when prompted for confirmation
 * `1` if the user chose not to continue when prompted for confirmation
+* `3` if an error occurred during submodule checking
 * `130` if the user `ctrl-c` the hook
 
 ## CHANGELOG
