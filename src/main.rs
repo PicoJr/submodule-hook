@@ -6,7 +6,7 @@ use dialoguer::theme::ColorfulTheme;
 use git2::{Config, Repository};
 use log::debug;
 use std::path::PathBuf;
-use std::process;
+use std::process::Termination;
 
 mod check_submodules;
 
@@ -19,6 +19,37 @@ enum ConfirmationOutcome {
     Declined,
     /// User cancelled/interrupted the confirmation (e.g., Ctrl+C)
     Cancelled,
+}
+
+impl Termination for ConfirmationOutcome {
+    fn report(self) -> std::process::ExitCode {
+        match self {
+            ConfirmationOutcome::Confirmed => std::process::ExitCode::SUCCESS,
+            ConfirmationOutcome::Declined => std::process::ExitCode::from(1),
+            ConfirmationOutcome::Cancelled => std::process::ExitCode::from(2),
+        }
+    }
+}
+
+/// Enum representing the overall program outcome
+#[derive(Debug)]
+enum ProgramOutcome {
+    /// Successful outcome with confirmation result
+    Success(ConfirmationOutcome),
+    /// Submodule check error
+    CheckError,
+    /// No confirmation needed
+    NoConfirmationNeeded,
+}
+
+impl Termination for ProgramOutcome {
+    fn report(self) -> std::process::ExitCode {
+        match self {
+            ProgramOutcome::Success(outcome) => outcome.report(),
+            ProgramOutcome::CheckError => std::process::ExitCode::from(3),
+            ProgramOutcome::NoConfirmationNeeded => std::process::ExitCode::SUCCESS,
+        }
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -137,7 +168,7 @@ fn ask_confirmation(diagnostics: &SubmodulesDiagnostic) -> anyhow::Result<Confir
     }
 }
 
-fn main() {
+fn main() -> ProgramOutcome {
     env_logger::init();
     let args = Args::parse();
     let cli_config = HookConfig {
@@ -156,8 +187,6 @@ fn main() {
         .or(git_config.confirm_not_staging)
         .unwrap_or(true);
     
-    let mut exit_code = 0;
-    
     if confirm_staging || confirm_not_staging {
         // only check submodules if configuration enables confirmation
         match check_submodules::check_submodules(strict, args.repo.as_path()) {
@@ -168,40 +197,44 @@ fn main() {
                 
                 if prompt_for_confirmation {
                     match ask_confirmation(&diagnostics) {
-                        Ok(ConfirmationOutcome::Confirmed) => {
-                            // User confirmed, continue with exit code 0
-                            exit_code = 0;
-                        }
-                        Ok(ConfirmationOutcome::Declined) => {
-                            // User declined, exit with specific code
-                            eprintln!("Commit aborted by user.");
-                            exit_code = 1;
-                        }
-                        Ok(ConfirmationOutcome::Cancelled) => {
-                            // User cancelled (e.g., Ctrl+C)
-                            eprintln!("Confirmation cancelled by user.");
-                            exit_code = 2;
+                        Ok(outcome) => {
+                            match outcome {
+                                ConfirmationOutcome::Confirmed => {
+                                    // User confirmed
+                                    return ProgramOutcome::Success(ConfirmationOutcome::Confirmed);
+                                }
+                                ConfirmationOutcome::Declined => {
+                                    // User declined
+                                    eprintln!("Commit aborted by user.");
+                                    return ProgramOutcome::Success(ConfirmationOutcome::Declined);
+                                }
+                                ConfirmationOutcome::Cancelled => {
+                                    // User cancelled (e.g., Ctrl+C)
+                                    eprintln!("Confirmation cancelled by user.");
+                                    return ProgramOutcome::Success(ConfirmationOutcome::Cancelled);
+                                }
+                            }
                         }
                         Err(e) => {
                             // Error occurred during confirmation
                             eprintln!("Confirmation error: {}", e);
-                            exit_code = 2;
+                            return ProgramOutcome::Success(ConfirmationOutcome::Cancelled);
                         }
                     }
                 }
             }
             Ok(None) => {
-                // No diagnostics to show, continue with exit code 0
-                exit_code = 0;
+                // No diagnostics to show
+                return ProgramOutcome::NoConfirmationNeeded;
             }
             Err(e) => {
                 // Error occurred during submodule checking
                 eprintln!("Submodule check error: {}", e);
-                exit_code = 3;
+                return ProgramOutcome::CheckError;
             }
         }
     }
     
-    // Single exit point with the determined exit code
-    process::exit(exit_code);
+    // No confirmation needed
+    ProgramOutcome::NoConfirmationNeeded
 }
